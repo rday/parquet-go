@@ -3,7 +3,7 @@ package parquet
 import (
 	"io"
 
-	"github.com/kostya-sh/parquet-go/parquet/thrift"
+	"github.com/TuneLab/Parquet-go/parquet/thrift"
 )
 
 // Decoder

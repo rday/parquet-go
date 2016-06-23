@@ -8,8 +8,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/kostya-sh/parquet-go/parquet/column"
-	"github.com/kostya-sh/parquet-go/parquet/thrift"
+	"github.com/TuneLab/Parquet-go/parquet/column"
+	"github.com/TuneLab/Parquet-go/parquet/thrift"
 )
 
 const (

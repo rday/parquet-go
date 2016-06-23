@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/kostya-sh/parquet-go/parquet/datatypes"
-	"github.com/kostya-sh/parquet-go/parquet/page"
-	"github.com/kostya-sh/parquet-go/parquet/thrift"
+	"github.com/TuneLab/Parquet-go/parquet/datatypes"
+	"github.com/TuneLab/Parquet-go/parquet/page"
+	"github.com/TuneLab/Parquet-go/parquet/thrift"
 )
 
 // Note: you can only have one dictionary page per each column chunk

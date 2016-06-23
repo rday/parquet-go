@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kostya-sh/parquet-go/parquet"
+	"github.com/TuneLab/Parquet-go/parquet"
 )
 
 func genBool(num int) []bool {

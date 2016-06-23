@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/kostya-sh/parquet-go/parquet/datatypes"
-	"github.com/kostya-sh/parquet-go/parquet/encoding/rle"
+	"github.com/TuneLab/Parquet-go/parquet/datatypes"
+	"github.com/TuneLab/Parquet-go/parquet/encoding/rle"
 )
 
 type plainDictionaryDecoder struct {

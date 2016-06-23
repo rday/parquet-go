@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/kostya-sh/parquet-go/parquet/datatypes"
-	"github.com/kostya-sh/parquet-go/parquet/thrift"
+	"github.com/TuneLab/Parquet-go/parquet/datatypes"
+	"github.com/TuneLab/Parquet-go/parquet/thrift"
 )
 
 var (

@@ -9,8 +9,8 @@ import (
 	"log"
 
 	"github.com/golang/snappy"
-	"github.com/kostya-sh/parquet-go/parquet/encoding"
-	"github.com/kostya-sh/parquet-go/parquet/thrift"
+	"github.com/TuneLab/Parquet-go/parquet/encoding"
+	"github.com/TuneLab/Parquet-go/parquet/thrift"
 )
 
 // DataEncoder

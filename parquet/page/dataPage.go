@@ -9,11 +9,11 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/kostya-sh/parquet-go/parquet/encoding"
-	"github.com/kostya-sh/parquet-go/parquet/encoding/bitpacking"
-	"github.com/kostya-sh/parquet-go/parquet/encoding/rle"
-	"github.com/kostya-sh/parquet-go/parquet/memory"
-	"github.com/kostya-sh/parquet-go/parquet/thrift"
+	"github.com/TuneLab/Parquet-go/parquet/encoding"
+	"github.com/TuneLab/Parquet-go/parquet/encoding/bitpacking"
+	"github.com/TuneLab/Parquet-go/parquet/encoding/rle"
+	"github.com/TuneLab/Parquet-go/parquet/memory"
+	"github.com/TuneLab/Parquet-go/parquet/thrift"
 )
 
 //DataPage represents one data page inside a column chunk

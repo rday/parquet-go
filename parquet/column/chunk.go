@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/kostya-sh/parquet-go/parquet/memory"
-	"github.com/kostya-sh/parquet-go/parquet/page"
-	"github.com/kostya-sh/parquet-go/parquet/thrift"
+	"github.com/TuneLab/Parquet-go/parquet/memory"
+	"github.com/TuneLab/Parquet-go/parquet/page"
+	"github.com/TuneLab/Parquet-go/parquet/thrift"
 )
 
 type Chunk struct {

@@ -6,9 +6,9 @@ import (
 
 	"os"
 
-	"github.com/kostya-sh/parquet-go/parquet/memory"
-	"github.com/kostya-sh/parquet-go/parquet/page"
-	"github.com/kostya-sh/parquet-go/parquet/thrift"
+	"github.com/TuneLab/Parquet-go/parquet/memory"
+	"github.com/TuneLab/Parquet-go/parquet/page"
+	"github.com/TuneLab/Parquet-go/parquet/thrift"
 )
 
 // Scanner implements the logic to de-serialize columns in the parquet format
@@ -233,7 +233,7 @@ func (s *Scanner) NewAccumulator() memory.Accumulator {
 // 	"io"
 // 	"io/ioutil"
 
-// 	"github.com/kostya-sh/parquet-go/thrift"
+// 	"github.com/TuneLab/Parquet-go/thrift"
 // )
 
 // // TODO: add other commons methods

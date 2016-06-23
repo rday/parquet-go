@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/kostya-sh/parquet-go/parquet/thrift"
+	"github.com/TuneLab/Parquet-go/parquet/thrift"
 )
 
 func strptr(v string) *string {

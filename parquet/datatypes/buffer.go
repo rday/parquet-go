@@ -3,7 +3,7 @@ package datatypes
 import (
 	"fmt"
 
-	"github.com/kostya-sh/parquet-go/parquet/thrift"
+	"github.com/TuneLab/Parquet-go/parquet/thrift"
 )
 
 // BufferWriter generic type
