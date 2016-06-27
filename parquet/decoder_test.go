@@ -1,14 +1,10 @@
 package parquet
 
-<<<<<<< HEAD:parquet/column_test.go
 import (
 	"os"
 	"reflect"
 	"testing"
 )
-=======
-import "testing"
->>>>>>> lee/mistobann_wip:parquet/decoder_test.go
 
 type cell struct {
 	d int
@@ -38,7 +34,6 @@ func checkColumnValues(t *testing.T, path string, columnIdx int, expected []cell
 		t.Fatal(err)
 	}
 
-<<<<<<< HEAD:parquet/column_test.go
 	k := 0
 	for i, rg := range m.RowGroups {
 		cc := rg.Columns[c]
@@ -65,36 +60,6 @@ func checkColumnValues(t *testing.T, path string, columnIdx int, expected []cell
 		if cr.Err() != nil {
 			t.Errorf("column %d: failed to read row group %d: %s", c, i, cr.Err())
 		}
-=======
-	// for i, rg := range m.RowGroups {
-	// 	cc := rg.Columns[c]
-	// 	columnSchema := schema.ColumnByPath(cc.MetaData.PathInSchema)
-	// 	//var cr ColumnChunkReader
-	//switch cs.SchemaElement.GetType() {
-	//case thrift.Type_BOOLEAN:
-	//cr, err = NewBooleanColumnChunkReader(r, cs, cc)
-	//case thrift.Type_BYTE_ARRAY:
-	//cr, err = NewByteArrayColumnChunkReader(r, cs, cc)
-	//}
-
-	// scanner := NewColumnScanner(r, cc, columnSchema.SchemaElement)
-
-	for scanner.Scan() {
-
-		//buffer := make([]bool, 0, 4)
-
-		// if k < len(expected) {
-		// 	// got := cell{cr.Levels().D, cr.Levels().R, cr.Value()}
-		// 	// if !reflect.DeepEqual(got, expected[k]) {
-		// 	// 	t.Errorf("column %d: value at pos %d = %#v, want %#v", c, k, got, expected[k])
-		// 	// }
-		// }
-
-		// scanner.BoolArray()
-
-		// k += len(buffer)
-		//fmt.Printf("V:%v\tD:%d\tR:%d\n", cr.Value(), cr.Levels().D, cr.Levels().R)
->>>>>>> lee/mistobann_wip:parquet/decoder_test.go
 	}
 
 	if scanner.Err() != nil {
