@@ -1,10 +1,12 @@
-package parquet
+package main
 
 import (
 	"flag"
 	"fmt"
-	"runtime/pprof"
 	"os"
+	"runtime/pprof"
+
+	"github.com/tunelab/parquet-go/parquet"
 )
 
 /*  Profiling to build a call graph. Work aroung the testing faill. */
@@ -12,8 +14,7 @@ import (
 // Profiling stuff ... from http://blog.golang.org/profiling-go-programs
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
-
-func main(){
+func main() {
 	flag.Parse()
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
@@ -23,7 +24,6 @@ func main(){
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
-
 
 	for i := 0; i < 50000; i++ {
 		testBooleanColumnChunkReader()
@@ -38,7 +38,7 @@ type cell struct {
 
 func checkColumnValues(path string, columnIdx int, expected []cell) {
 
-	fd, err := OpenFile(path)
+	fd, err := parquet.OpenFile(path)
 	if err != nil {
 		fmt.Errorf("failed to read %s: %s", path, err)
 		return
@@ -55,7 +55,7 @@ func checkColumnValues(path string, columnIdx int, expected []cell) {
 	scanner, err := fd.ColumnScanner(columns[columnIdx])
 
 	if err != nil {
-		fmt.Println("Fatal error: ",err)
+		fmt.Println("Fatal error: ", err)
 	}
 
 	// for i, rg := range m.RowGroups {
@@ -98,7 +98,7 @@ func checkColumnValues(path string, columnIdx int, expected []cell) {
 }
 
 func testBooleanColumnChunkReader() {
-	checkColumnValues( "testdata/Booleans.parquet", 0, []cell{
+	checkColumnValues("testdata/Booleans.parquet", 0, []cell{
 		{0, 0, true},
 		{0, 0, true},
 		{0, 0, false},
@@ -107,7 +107,7 @@ func testBooleanColumnChunkReader() {
 		{0, 0, true},
 	})
 
-	checkColumnValues( "testdata/Booleans.parquet", 1, []cell{
+	checkColumnValues("testdata/Booleans.parquet", 1, []cell{
 		{0, 0, false},
 		{1, 0, false},
 		{1, 0, true},
@@ -116,7 +116,7 @@ func testBooleanColumnChunkReader() {
 		{1, 0, true},
 	})
 
-	checkColumnValues( "testdata/Booleans.parquet", 2, []cell{
+	checkColumnValues("testdata/Booleans.parquet", 2, []cell{
 		{0, 0, false},
 
 		{0, 0, false},
