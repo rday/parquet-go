@@ -1,7 +1,7 @@
 package parquet
 
 import "testing"
-import _ "net/http/pprof"
+// import _ "net/http/pprof"
 
 /*  This file is currently for exploration purposes.
     We repeat a test enough times to get a cpu profile, then
@@ -10,7 +10,7 @@ import _ "net/http/pprof"
 
 
 func TestProfileBooleanColumnChunkReader(t *testing.T) {
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 50000; i++ {
 		TestBooleanColumnChunkReader(t)
 	}
 }
