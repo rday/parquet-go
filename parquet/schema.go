@@ -274,7 +274,7 @@ func (s *Schema) ColumnByName(name string) *ColumnDescriptor {
 	if !ok {
 		return nil
 	}
-	return nil
+	return &cs
 }
 
 // ColumnByPath returns a ColumnDescriptor for the given path or or nil if such
