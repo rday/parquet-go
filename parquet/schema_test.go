@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/TuneLab/Parquet-go/parquet/thrift"
+	"github.com/TuneLab/parquet-go/parquet/thrift"
 )
 
 func int32Ptr(v int32) *int32 {

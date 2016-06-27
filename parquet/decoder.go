@@ -3,7 +3,7 @@ package parquet
 import (
 	"io"
 
-	"github.com/TuneLab/Parquet-go/parquet/thrift"
+	"github.com/TuneLab/parquet-go/parquet/thrift"
 )
 
 // Decoder

@@ -7,4 +7,4 @@ package thrift
 // 2. Run thrift compiler
 //
 //go:generate thrift --out .. --gen go:package=$GOPACKAGE,read_write_private parquet.thrift
-// go:package=$GOPACKAGE,thrift_import=github.com/TuneLab/Parquet-go/parquet/internal/thrift,read_write_private
+// go:package=$GOPACKAGE,thrift_import=github.com/TuneLab/parquet-go/parquet/internal/thrift,read_write_private

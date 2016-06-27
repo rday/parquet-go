@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/TuneLab/Parquet-go/parquet"
+	"github.com/TuneLab/parquet-go/parquet"
 	"github.com/linkedin/goavro"
 )
 

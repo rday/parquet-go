@@ -6,8 +6,8 @@ import (
 	"math"
 	"strings"
 
-	"github.com/TuneLab/Parquet-go/parquet"
-	"github.com/TuneLab/Parquet-go/parquet/memory"
+	"github.com/TuneLab/parquet-go/parquet"
+	"github.com/TuneLab/parquet-go/parquet/memory"
 )
 
 var cmdDump = &Command{

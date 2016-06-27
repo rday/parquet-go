@@ -3,8 +3,8 @@ package memory
 import (
 	"fmt"
 
-	"github.com/TuneLab/Parquet-go/parquet/encoding"
-	"github.com/TuneLab/Parquet-go/parquet/thrift"
+	"github.com/TuneLab/parquet-go/parquet/encoding"
+	"github.com/TuneLab/parquet-go/parquet/thrift"
 )
 
 type Accumulator interface {

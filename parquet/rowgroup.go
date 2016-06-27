@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/TuneLab/Parquet-go/parquet/column"
-	"github.com/TuneLab/Parquet-go/parquet/datatypes"
-	"github.com/TuneLab/Parquet-go/parquet/thrift"
+	"github.com/TuneLab/parquet-go/parquet/column"
+	"github.com/TuneLab/parquet-go/parquet/datatypes"
+	"github.com/TuneLab/parquet-go/parquet/thrift"
 )
 
 // RowGroupScanner

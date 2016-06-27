@@ -8,8 +8,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/TuneLab/Parquet-go/parquet/column"
-	"github.com/TuneLab/Parquet-go/parquet/thrift"
+	"github.com/TuneLab/parquet-go/parquet/column"
+	"github.com/TuneLab/parquet-go/parquet/thrift"
 )
 
 const (
@@ -124,7 +124,7 @@ func readFileMetaData(r io.ReadSeeker) (*thrift.FileMetaData, error) {
 
 // FileDescriptor implements ReadSeekCloser
 type FileDescriptor struct {
-	ReadSeekCloser
+	r ReadSeekCloser
 	meta   *thrift.FileMetaData
 	schema *Schema
 }
@@ -146,7 +146,7 @@ func OpenFile(path string) (*FileDescriptor, error) {
 		return nil, fmt.Errorf("could not read schema %s: %s", path, err)
 	}
 
-	return &FileDescriptor{ReadSeekCloser: r, meta: meta, schema: schema}, err
+	return &FileDescriptor{r: r, meta: meta, schema: schema}, err
 }
 
 // Schema returns the current schema encoded in the parquet file
@@ -172,14 +172,14 @@ func (fd *FileDescriptor) ColumnScanner(colname string) (*column.Scanner, error)
 	return column.NewScanner(fd, elementSchema, chunks), nil
 }
 
-// func (fd *FileDescriptor) Close() error {
-// 	return fd.r.Close()
-// }
+ func (fd *FileDescriptor) Close() error {
+ 	return fd.r.Close()
+ }
 
-// func (fd *FileDescriptor) Read(p []byte) (int, error) {
-// 	return fd.r.Read(p)
-// }
+ func (fd *FileDescriptor) Read(p []byte) (int, error) {
+ 	return fd.r.Read(p)
+ }
 
-// func (fd *FileDescriptor) Seek(p int64, x int) (int64, error) {
-// 	return fd.r.Seek(p, x)
-// }
+ func (fd *FileDescriptor) Seek(p int64, x int) (int64, error) {
+ 	return fd.r.Seek(p, x)
+ }

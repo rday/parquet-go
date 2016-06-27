@@ -6,7 +6,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/TuneLab/Parquet-go/parquet/encoding/bitpacking"
+	"github.com/TuneLab/parquet-go/parquet/encoding/bitpacking"
 )
 
 func ReadVarint32(r io.ByteReader) (int32, error) {

@@ -2,6 +2,7 @@ package parquet
 
 import "testing"
 
+
 type cell struct {
 	d int
 	r int
@@ -15,7 +16,7 @@ func checkColumnValues(t *testing.T, path string, columnIdx int, expected []cell
 		t.Errorf("failed to read %s: %s", path, err)
 		return
 	}
-
+	defer fd.Close()
 	// schema, err := schemaFromFileMetaData(m)
 	// if err != nil {
 	// 	t.Errorf("failed to create schema: %s", err)

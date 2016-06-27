@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/TuneLab/Parquet-go/parquet"
+	"github.com/TuneLab/parquet-go/parquet"
 )
 
 var cmdSchema = &Command{
