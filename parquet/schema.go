@@ -2,12 +2,21 @@ package parquet
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 
-	"github.com/kostya-sh/parquet-go/parquetformat"
+	"github.com/TuneLab/parquet-go/parquet/thrift"
 )
+
+func strptr(v string) *string {
+	return &v
+}
+
+func normalizeType(str string) string {
+	return strings.ToUpper(str)
+}
 
 // Levels struct combines definition level (D) and repetion level (R).
 type Levels struct {
@@ -18,7 +27,7 @@ type Levels struct {
 
 // Schema describes structure of the data that is stored in a parquet file.
 //
-// A Schema can be created from a parquetformat.FileMetaData. Information that
+// A Schema can be created from a thrift.FileMetaData. Information that
 // is stored in RowGroups part of FileMetaData is not needed for the schema
 // creation.
 // TODO(ksh): provide a way to read FileMetaData without RowGroups.
@@ -27,112 +36,294 @@ type Levels struct {
 // split into multiple parquet files metadata can be stored in a separate
 // file. Usually this file is called "_common_metadata".
 type Schema struct {
-	root    group
-	columns []ColumnSchema
+	root            group
+	columns         map[string]ColumnDescriptor
+	columnsSequence []string
 }
 
-// ColumnSchema contains information about a single column in a parquet file.
+var (
+	ErrBadFormat = errors.New("invalid format. format is `name: type [original type] REQUIRED|OPTIONAL`")
+)
+
+// NewSchema create an empty schema.
+func NewSchema() *Schema {
+	return &Schema{
+		root:    group{},
+		columns: make(map[string]ColumnDescriptor),
+	}
+}
+
+// Columns return the name of all the columns in this schema.
+func (s *Schema) Columns() []string {
+	return s.columnsSequence
+}
+
+func (s *Schema) Elements() []*thrift.SchemaElement {
+	elements := make([]*thrift.SchemaElement, 0, len(s.columns))
+
+	for _, colname := range s.columnsSequence {
+		elements = append(elements, s.columns[colname].SchemaElement)
+	}
+
+	return elements
+}
+
+// AddColumn adds a column with the given specifications format
+// format is
+//          name: type [original type] REQUIRED
+func (s *Schema) AddColumnFromSpec(format string) error {
+	values := strings.SplitN(format, ":", 2)
+	if len(values) != 2 {
+		return ErrBadFormat
+	}
+
+	name := values[0]
+	spec := values[1]
+
+	el := thrift.NewSchemaElement()
+	el.Name = name
+
+	values = strings.Split(strings.TrimSpace(spec), " ")
+
+	originalType, err := thrift.TypeFromString(normalizeType(values[0]))
+	if err != nil {
+		return fmt.Errorf("could not add column: bad type: %s (%s)", err, values[0])
+	}
+	el.Type = &originalType
+
+	switch len(values) {
+	case 3:
+		convertedType, err := thrift.ConvertedTypeFromString(normalizeType(values[1]))
+		if err != nil {
+			return fmt.Errorf("could not add column: bad converted type: %s", err)
+		}
+
+		repetitionType, err := thrift.FieldRepetitionTypeFromString(normalizeType(values[2]))
+		if err != nil {
+			return fmt.Errorf("could not add column: bad repetition type: %s", err)
+		}
+
+		el.ConvertedType = &convertedType
+		el.RepetitionType = &repetitionType
+	case 2:
+		repetitionType, err := thrift.FieldRepetitionTypeFromString(normalizeType(values[1]))
+		if err != nil {
+			return fmt.Errorf("could not add column: bad repetition type: %s", err)
+		}
+		el.RepetitionType = &repetitionType
+
+	default:
+		return fmt.Errorf("could not add column: invalid number of elements in format")
+
+	}
+
+	s.columns[el.Name] = ColumnDescriptor{
+		SchemaElement: el,
+	}
+
+	return nil
+}
+
+// name, type
+func (s *Schema) AddColumnFromThriftSchema(spec map[string]interface{}) error {
+	el := thrift.NewSchemaElement()
+
+	type_, ok := spec["type"]
+	if !ok {
+		return fmt.Errorf("invalid spec: key 'type', not found")
+	}
+
+	name, ok := spec["name"]
+	if !ok {
+		return fmt.Errorf("invalid spec: key 'name', not found")
+	}
+
+	el.Name = name.(string)
+
+	// https://avro.apache.org/docs/1.8.0/spec.html#schema_primitive
+	switch type_ {
+	case "null":
+	case "boolean":
+		el.Type = typeBoolean
+	case "int":
+		el.Type = typeInt32
+		el.ConvertedType = ctInt32
+	case "long":
+		el.Type = typeInt64
+		el.ConvertedType = ctInt64
+	case "float":
+		el.Type = typeFloat
+	case "double":
+		el.Type = typeDouble
+	case "bytes":
+		el.Type = typeByteArray
+	case "string":
+		el.Type = typeByteArray
+		el.ConvertedType = ctUTF8
+	default:
+		return fmt.Errorf("unsupported type: %s", type_)
+	}
+
+	s.columns[el.Name] = ColumnDescriptor{
+		SchemaElement: el,
+	}
+
+	return nil
+}
+
+// ColumnDescriptor contains information about a single column in a parquet file.
 // TODO(ksh): or maybe interface?
-type ColumnSchema struct {
-	index         int
-	name          string
-	maxLevels     Levels
-	schemaElement *parquetformat.SchemaElement
+type ColumnDescriptor struct {
+	// MaxLevels contains maximum definition and repetition levels for this column
+	MaxLevels     Levels
+	SchemaElement *thrift.SchemaElement
+
+	index int
 }
 
-// Index is a 0-based index of cs in its schema.
-//
-// Column chunks in a row group have the same order as columns in the schema.
-func (cs *ColumnSchema) Index() int {
-	return cs.index
+func (schema *Schema) createMetadata() *thrift.FileMetaData {
+	root_children := int32(1)
+
+	root := thrift.NewSchemaElement()
+	root.Name = "root"
+	root.NumChildren = &root_children
+
+	// the root of the schema does not have to have a repetition type.
+	// All the other elements do.
+	elements := []*thrift.SchemaElement{root}
+
+	//typeint := thrift.Type_INT32
+
+	//offset := len(PARQUET_MAGIC)
+
+	// for row group
+	// for idx, cc := range schema.columns {
+	// 	cc.FileOffset = int64(offset)
+	// 	// n, err := cc.Write(w)
+	// 	// if err != nil {
+	// 	// 	return fmt.Errorf("chunk writer: could not write chunk for column %d: %s", idx, err)
+	// 	// }
+	// 	// offset += n
+	// 	cc.MetaData.DataPageOffset = int64(offset)
+
+	// 	n1, err := io.Copy(w, &chunks[0])
+	// 	if err != nil {
+	// 		return fmt.Errorf("chunk writer: could not write chunk for column %d: %s", idx, err)
+	// 	}
+
+	// 	log.Println("wrote:", n1)
+
+	// 	offset += int(n1)
+
+	// 	group.AddColumn(cc)
+
+	// 	columnDescriptor := thrift.NewSchemaElement()
+	// 	columnDescriptor.Name = cc.GetMetaData().PathInSchema[0]
+	// 	columnDescriptor.NumChildren = nil
+	// 	columnDescriptor.Type = &typeint
+	// 	required := thrift.FieldRepetitionType_REQUIRED
+	// 	columnDescriptor.RepetitionType = &required
+
+	// 	schema = append(schema, columnDescriptor)
+	// }
+
+	// write metadata at then end of the file in thrift format
+	meta := thrift.FileMetaData{
+		Version:          0,
+		Schema:           elements,
+		RowGroups:        []*thrift.RowGroup{},
+		KeyValueMetadata: []*thrift.KeyValue{},
+		CreatedBy:        strptr("go-0.1"), // go-parquet version 1.0 (build 6cf94d29b2b7115df4de2c06e2ab4326d721eb55)
+	}
+
+	return &meta
 }
 
-// MaxLevels contains maximum definition and repetition levels for cs.
-// TODO: maybe MaxD and MaxR (and make Levels private)
-func (cs *ColumnSchema) MaxLevels() Levels {
-	return cs.maxLevels
-}
-
-// SchemaFromFileMetaData creates a Schema from meta.
-func SchemaFromFileMetaData(meta *parquetformat.FileMetaData) (*Schema, error) {
+// schemaFromFileMetaData creates a Schema from meta.
+func schemaFromFileMetaData(meta *thrift.FileMetaData) (*Schema, error) {
 	s := Schema{}
 	end, err := s.root.create(meta.Schema, 0)
 	if err != nil {
 		return nil, err
 	}
+
 	if end != len(meta.Schema) {
 		return nil, fmt.Errorf("too many SchemaElements, only %d out of %d have been used",
 			end, len(meta.Schema))
 	}
 
-	s.columns = s.root.collectColumns()
-	for i := range s.columns {
-		s.columns[i].index = i
+	maxLevels := s.root.calcMaxLevels()
+	schemaElements := s.root.makeSchemaElements()
+	s.columns = make(map[string]ColumnDescriptor)
+	for name, lvls := range maxLevels {
+		se, ok := schemaElements[name]
+		if !ok {
+			panic("should not happen")
+		}
+		s.columnsSequence = append(s.columnsSequence, name)
+		s.columns[name] = ColumnDescriptor{MaxLevels: lvls, SchemaElement: se}
 	}
 
 	return &s, nil
 }
 
-// ColumnByName returns a ColumnSchema with the given name (individual elements
+// ColumnByName returns a ColumnDescriptor with the given name (individual elements
 // are separated with ".") or nil if such column does not exist in s.
-func (s *Schema) ColumnByName(name string) *ColumnSchema {
-	for i := range s.columns {
-		if s.columns[i].name == name {
-			return &s.columns[i]
-		}
+func (s *Schema) ColumnByName(name string) *ColumnDescriptor {
+	cs, ok := s.columns[name]
+	if !ok {
+		return nil
 	}
 	return nil
 }
 
-// ColumnByPath returns a ColumnSchema for the given path or or nil if such
+// ColumnByPath returns a ColumnDescriptor for the given path or or nil if such
 // column does not exist in s.
-func (s *Schema) ColumnByPath(path []string) *ColumnSchema {
+func (s *Schema) ColumnByPath(path []string) *ColumnDescriptor {
 	return s.ColumnByName(strings.Join(path, "."))
-}
-
-// Columns returns ColumnSchemas for all columns defined in s.
-func (s *Schema) Columns() []ColumnSchema {
-	// TODO: maybe copy?
-	return s.columns
 }
 
 // DisplayString returns a string representation of s using textual format
 // similar to that described in the Dremel paper and used by parquet-mr project.
 func (s *Schema) DisplayString() string {
-	b := new(bytes.Buffer)
-	s.writeTo(b, "")
+	var b bytes.Buffer
+	s.writeTo(&b, "")
 	return b.String()
 }
 
 type schemaElement interface {
-	create(schema []*parquetformat.SchemaElement, start int) (next int, err error)
+	create(schema []*thrift.SchemaElement, start int) (next int, err error)
 
 	writeTo(w io.Writer, indent string)
 }
 
 // group of fields
 type group struct {
-	schemaElement *parquetformat.SchemaElement
+	schemaElement *thrift.SchemaElement
 	children      []schemaElement
+	index         int
 }
 
 // primitive field
 type primitive struct {
-	schemaElement *parquetformat.SchemaElement
+	index         int
+	schemaElement *thrift.SchemaElement
 }
 
-func (g *group) create(schema []*parquetformat.SchemaElement, start int) (int, error) {
+func (g *group) create(schema []*thrift.SchemaElement, start int) (int, error) {
 	if len(schema) == 0 {
-		return 0, fmt.Errorf("empty schema")
+		return 0, nil
 	}
 
 	var s = schema[start]
 	if s.NumChildren == nil {
 		return 0, fmt.Errorf("NumChildren must be defined in schema[%d]", start)
 	}
-	if *s.NumChildren <= 0 {
-		return 0, fmt.Errorf("Invalid NumChildren value in schema[%d]: %d", start, *s.NumChildren)
+
+	if s.GetNumChildren() <= 0 {
+		return 0, fmt.Errorf("Invalid NumChildren value in schema[%d]: %d", start, s.GetNumChildren())
 	}
+
 	if s.Type != nil {
 		return 0, fmt.Errorf("Not null type (%s) in schema[%d]", s.Type, start)
 	}
@@ -151,13 +342,14 @@ func (g *group) create(schema []*parquetformat.SchemaElement, start int) (int, e
 
 	i := start + 1
 	var err error
-	for k := 0; k < int(*s.NumChildren); k++ {
+	for k := 0; k < int(s.GetNumChildren()); k++ {
 		if i >= len(schema) {
 			// TODO: more accurate error message
-			return 0, fmt.Errorf("schema[%d].NumChildren is invalid (out of bounds)", start)
+			return 0, fmt.Errorf("schema[%d].NumChildren is invalid (out of bounds)", i)
 		}
 		if schema[i].Type == nil {
 			child := group{}
+			child.index = i
 			i, err = child.create(schema, i)
 			if err != nil {
 				return 0, err
@@ -165,6 +357,7 @@ func (g *group) create(schema []*parquetformat.SchemaElement, start int) (int, e
 			g.children[k] = &child
 		} else {
 			child := primitive{}
+			child.index = i
 			i, err = child.create(schema, i)
 			if err != nil {
 				return 0, err
@@ -205,37 +398,55 @@ func (g *group) writeTo(w io.Writer, indent string) {
 	g.marshalChildren(w, indent)
 }
 
-func (g *group) collectColumns() []ColumnSchema {
-	var cols = make([]ColumnSchema, 0, len(g.children))
+func (g *group) calcMaxLevels() map[string]Levels {
+	lvls := make(map[string]Levels)
 	for _, child := range g.children {
 		switch c := child.(type) {
 		case *primitive:
 			s := c.schemaElement
 			var levels Levels
-			if *s.RepetitionType != parquetformat.FieldRepetitionType_REQUIRED {
+			if *s.RepetitionType != thrift.FieldRepetitionType_REQUIRED {
 				levels.D = 1
 			}
-			if *s.RepetitionType == parquetformat.FieldRepetitionType_REPEATED {
+			if *s.RepetitionType == thrift.FieldRepetitionType_REPEATED {
 				levels.R = 1
 			}
-			cols = append(cols, ColumnSchema{name: s.Name, maxLevels: levels, schemaElement: s})
+			lvls[s.Name] = levels
 		case *group:
 			s := c.schemaElement
-			for _, cs := range c.collectColumns() {
-				if *s.RepetitionType != parquetformat.FieldRepetitionType_REQUIRED {
-					cs.maxLevels.D++
+			for k, v := range c.calcMaxLevels() {
+				if *s.RepetitionType != thrift.FieldRepetitionType_REQUIRED {
+					v.D++
 				}
-				if *s.RepetitionType == parquetformat.FieldRepetitionType_REPEATED {
-					cs.maxLevels.R++
+				if *s.RepetitionType == thrift.FieldRepetitionType_REPEATED {
+					v.R++
 				}
-				cs.name = s.Name + "." + cs.name
-				cols = append(cols, cs)
+				lvls[s.Name+"."+k] = v
 			}
 		default:
 			panic("unexpected child type")
 		}
 	}
-	return cols
+	return lvls
+}
+
+func (g *group) makeSchemaElements() map[string]*thrift.SchemaElement {
+	m := make(map[string]*thrift.SchemaElement)
+	for _, child := range g.children {
+		switch c := child.(type) {
+		case *primitive:
+			s := c.schemaElement
+			m[s.Name] = s
+		case *group:
+			s := c.schemaElement
+			for k, v := range c.makeSchemaElements() {
+				m[s.Name+"."+k] = v
+			}
+		default:
+			panic("unexpected child type")
+		}
+	}
+	return m
 }
 
 func (s *Schema) writeTo(w io.Writer, indent string) {
@@ -253,7 +464,7 @@ func (s *Schema) writeTo(w io.Writer, indent string) {
 	s.root.marshalChildren(w, indent)
 }
 
-func (p *primitive) create(schema []*parquetformat.SchemaElement, start int) (int, error) {
+func (p *primitive) create(schema []*thrift.SchemaElement, start int) (int, error) {
 	s := schema[start]
 
 	// TODO: validate Name is not empty
@@ -264,7 +475,7 @@ func (p *primitive) create(schema []*parquetformat.SchemaElement, start int) (in
 
 	t := *s.Type
 
-	if t == parquetformat.Type_FIXED_LEN_BYTE_ARRAY {
+	if t == thrift.Type_FIXED_LEN_BYTE_ARRAY {
 		if s.TypeLength == nil {
 			return 0, fmt.Errorf("schema[%d].TypeLength = nil for type FIXED_LEN_BYTE_ARRAY", start)
 			// TODO: check length is positive
@@ -275,10 +486,10 @@ func (p *primitive) create(schema []*parquetformat.SchemaElement, start int) (in
 		// validate ConvertedType
 		ct := *s.ConvertedType
 		switch {
-		case (ct == parquetformat.ConvertedType_UTF8 && t != parquetformat.Type_BYTE_ARRAY) ||
-			(ct == parquetformat.ConvertedType_MAP) ||
-			(ct == parquetformat.ConvertedType_MAP_KEY_VALUE) ||
-			(ct == parquetformat.ConvertedType_LIST):
+		case (ct == thrift.ConvertedType_UTF8 && t != thrift.Type_BYTE_ARRAY) ||
+			(ct == thrift.ConvertedType_MAP) ||
+			(ct == thrift.ConvertedType_MAP_KEY_VALUE) ||
+			(ct == thrift.ConvertedType_LIST):
 			return 0, fmt.Errorf("%s field %s cannot be annotated with %s", t, s.Name, ct)
 		}
 		// TODO: validate U[INT]{8,16,32,64}
@@ -302,7 +513,7 @@ func (p *primitive) writeTo(w io.Writer, indent string) {
 	fmt.Fprint(w, strings.ToLower(s.RepetitionType.String()))
 	fmt.Fprint(w, " ")
 	fmt.Fprint(w, strings.ToLower(s.Type.String()))
-	if *s.Type == parquetformat.Type_FIXED_LEN_BYTE_ARRAY {
+	if *s.Type == thrift.Type_FIXED_LEN_BYTE_ARRAY {
 		fmt.Fprintf(w, "(%d)", *s.TypeLength)
 	}
 	fmt.Fprint(w, " ")
@@ -310,7 +521,7 @@ func (p *primitive) writeTo(w io.Writer, indent string) {
 	if s.ConvertedType != nil {
 		fmt.Fprint(w, " (")
 		fmt.Fprint(w, s.ConvertedType.String())
-		if *s.ConvertedType == parquetformat.ConvertedType_DECIMAL {
+		if *s.ConvertedType == thrift.ConvertedType_DECIMAL {
 			fmt.Fprintf(w, "(%d,%d)", s.Precision, s.Scale)
 		}
 		fmt.Fprint(w, ")")

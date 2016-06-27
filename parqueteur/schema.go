@@ -2,14 +2,13 @@ package main
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/kostya-sh/parquet-go/parquet"
+	"github.com/TuneLab/parquet-go/parquet"
 )
 
 var cmdSchema = &Command{
 	Name: "schema",
-	Help: "disaply parquet file schema",
+	Help: "display parquet file schema",
 }
 
 func init() {
@@ -21,23 +20,12 @@ func runSchema(cmd *Command, args []string) error {
 		return fmt.Errorf("No files")
 	}
 
-	r, err := os.Open(args[0])
+	r, err := parquet.OpenFile(args[0])
 	if err != nil {
 		return err
 	}
 	defer r.Close()
 
-	meta, err := parquet.ReadFileMetaData(r)
-	if err != nil {
-		return err
-	}
-
-	// fmt.Printf("%+v\n\n", meta.Schema)
-
-	schema, err := parquet.SchemaFromFileMetaData(meta)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Println(schema.DisplayString())
+	_, err = fmt.Println(r.Schema().DisplayString())
 	return err
 }

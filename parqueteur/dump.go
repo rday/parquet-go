@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"log"
+	"math"
+	"strings"
 
-	"github.com/kostya-sh/parquet-go/parquet"
+	"github.com/TuneLab/parquet-go/parquet"
+	"github.com/TuneLab/parquet-go/parquet/memory"
 )
 
 var cmdDump = &Command{
@@ -24,60 +27,84 @@ func init() {
 	cmdDump.Flag.BoolVar(&showLevels, "levels", false, "dump repetition and definition levels along with the column values")
 }
 
+// read The file metadata
+// read the column metadata
+// read the offset of the column
 func runDump(cmd *Command, args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("No files")
+		return fmt.Errorf("%s: no files", args[0])
 	}
 
-	r, err := os.Open(args[0])
+	fd, err := parquet.OpenFile(args[0])
 	if err != nil {
 		return err
 	}
-	defer r.Close()
+	defer fd.Close()
 
-	m, err := parquet.ReadFileMetaData(r)
-	if err != nil {
-		return err
-	}
-	schema, err := parquet.SchemaFromFileMetaData(m)
-	if err != nil {
-		return err
-	}
-	cs := schema.ColumnByName(dumpColumn)
-	if cs == nil {
-		return fmt.Errorf("no column named '%s' in schema", dumpColumn)
-	}
+	rowGroup := make(map[string]memory.Accumulator)
 
-	for i, rg := range m.RowGroups {
-		if cs.Index() > len(rg.Columns) {
-			return fmt.Errorf("not enough column chunks in rowgroup %d", i)
-		}
-		var cc = rg.Columns[cs.Index()]
-		cr, err := parquet.NewColumnChunkReader(r, *cs, *cc)
+	minValue := math.MaxInt32
+
+	for _, col := range fd.Schema().Columns() {
+
+		// will iterate across row groups
+		scanner, err := fd.ColumnScanner(col)
 		if err != nil {
-			return err
+			log.Printf("error reading %s: %s", col, err)
 		}
-		for cr.Next() {
-			levels := cr.Levels()
-			value := cr.Value()
-			notNull := levels.D == cs.MaxLevels().D
-			if notNull {
-				fmt.Print(value)
-			}
-			// TODO: consider customizing null value via command lines
-			if showLevels {
-				if notNull {
-					fmt.Printf(" ")
-				}
-				fmt.Printf("(D:%d; R:%d)", levels.D, levels.R)
-			}
-			fmt.Println()
 
+		log.Println("%d", scanner.NumValues())
+
+		// provide a simple accumulator
+		acc := scanner.NewAccumulator()
+
+		// scans one chunk at the time
+		for scanner.Scan() {
+			// read all the data
+			if err := scanner.Decode(acc); err != nil {
+				log.Printf("error decoding %s", err)
+			}
 		}
-		if cr.Err() != nil {
-			return cr.Err()
+
+		if err := scanner.Err(); err != nil {
+			log.Printf("error reading %s: %s", col, err)
+		}
+
+		rowGroup[col] = acc
+
+		log.Println("values read: %v", scanner.NumValues())
+
+		if v := scanner.NumValues(); minValue > int(v) {
+			minValue = int(v)
 		}
 	}
+
+	columns := fd.Schema().Columns()
+
+	fmt.Println(strings.Join(columns, ","))
+
+	for i := 0; i < minValue; i++ {
+		for _, colname := range columns {
+			col := rowGroup[colname]
+			if v, ok := col.Get(i); ok {
+				fmt.Printf("%v, ", v)
+			}
+		}
+		fmt.Printf("\n")
+	}
+
+	// for _, rowGroupScanner := range decoder.NewRowGroupScanner() {
+	// 	for _, scanner := range rowGroupScanner.NewColumnScanners() {
+
+	// 		for scanner.Scan() {
+
+	// 		}
+
+	// 		if err := scanner.Err(); err != nil {
+	// 			fmt.Printf("%s: invalid input: %s\n", os.Args[0], err)
+	// 		}
+	// 	}
+	// }
 
 	return nil
 }
