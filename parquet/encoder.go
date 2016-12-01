@@ -97,7 +97,7 @@ type Encoder interface {
 	// WriteFloat64(name string, values []float64) error
 	// WriteByteArray(name string, values [][]byte) error
 
-	// WriteBool(name string, values []bool) error
+	WriteBool(name string, values []bool) error
 }
 
 // RowGroup
@@ -157,6 +157,10 @@ func (e *defaultEncoder) WriteRecords(records []map[string]interface{}) error {
 	e.recordBuffer.Reset()
 
 	return e.rowGroupEncoder.Write(e)
+}
+
+func (e *defaultEncoder) WriteBool(name string, values []bool) error {
+	return nil
 }
 
 // Close writes all the pending data to the underlying stream.

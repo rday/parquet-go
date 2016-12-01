@@ -7,8 +7,16 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kostya-sh/parquet-go/parquet"
+	"github.com/TuneLab/parquet-go/parquet"
 )
+
+type BufferCloser struct {
+	bytes.Buffer
+}
+
+func (b BufferCloser) Close() error {
+	return nil
+}
 
 func genBool(num int) []bool {
 	r := make([]bool, num)
@@ -38,7 +46,7 @@ func TestBooleanColumn(t *testing.T) {
 
 	// defer os.Remove(tmpfile.Name()) // clean up
 
-	var b bytes.Buffer
+	var b BufferCloser
 
 	enc := parquet.NewEncoder(schema, &b)
 
