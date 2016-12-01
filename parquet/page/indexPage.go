@@ -1,6 +1,6 @@
 package page
 
-import "github.com/kostya-sh/parquet-go/parquet/thrift"
+import "github.com/TuneLab/parquet-go/parquet/thrift"
 
 //IndexPage
 type IndexPage struct {

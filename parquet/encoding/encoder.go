@@ -3,7 +3,7 @@ package encoding
 import (
 	"io"
 
-	"github.com/kostya-sh/parquet-go/parquet/datatypes"
+	"github.com/TuneLab/parquet-go/parquet/datatypes"
 )
 
 // Encoder interface

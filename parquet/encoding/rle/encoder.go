@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/kostya-sh/parquet-go/parquet/encoding/bitpacking"
+	"github.com/TuneLab/parquet-go/parquet/encoding/bitpacking"
 )
 
 // WriteBool writes to w all the values inside v or returns an error.

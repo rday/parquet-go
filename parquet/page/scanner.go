@@ -9,8 +9,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/TuneLab/parquet-go/parquet/thrift"
 	"github.com/golang/snappy"
-	"github.com/kostya-sh/parquet-go/parquet/thrift"
 )
 
 // Scanner scans through pages inside a single column chunk
