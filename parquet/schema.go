@@ -312,7 +312,7 @@ type primitive struct {
 
 func (g *group) create(schema []*thrift.SchemaElement, start int) (int, error) {
 	if len(schema) == 0 {
-		return 0, nil
+		return 0, fmt.Errorf("Empty schema array")
 	}
 
 	var s = schema[start]

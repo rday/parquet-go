@@ -103,8 +103,6 @@ func TestCreateInvalidSchemas(t *testing.T) {
 		_, err := schemaFromFileMetaData(meta)
 		if err == nil {
 			t.Errorf("Error expected for %+v", meta)
-		} else {
-			t.Logf("Error for %+v: %s", meta, err)
 		}
 	}
 }
@@ -366,7 +364,7 @@ func TestReadFileMetaDataFromInvalidFiles(t *testing.T) {
 	}
 }
 
-func TestreadFileMetaData(t *testing.T) {
+func TestReadFileMetaData(t *testing.T) {
 	r, err := os.Open("testdata/OneRecord.parquet")
 	if err != nil {
 		t.Fatalf("Error: %s", err)
