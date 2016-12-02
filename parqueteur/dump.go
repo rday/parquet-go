@@ -53,7 +53,7 @@ func runDump(cmd *Command, args []string) error {
 			log.Printf("error reading %s: %s", col, err)
 		}
 
-		log.Println("%d", scanner.NumValues())
+		log.Printf("%d", scanner.NumValues())
 
 		// provide a simple accumulator
 		acc := scanner.NewAccumulator()
@@ -72,7 +72,7 @@ func runDump(cmd *Command, args []string) error {
 
 		rowGroup[col] = acc
 
-		log.Println("values read: %v", scanner.NumValues())
+		log.Printf("values read: %v", scanner.NumValues())
 
 		if v := scanner.NumValues(); minValue > int(v) {
 			minValue = int(v)

@@ -126,7 +126,8 @@ func NewEncoder(schema *Schema, w io.WriteCloser) Encoder {
 		rowGroupEncoder: newRowGroupEncoder(schema),
 		recordBuffer:    datatypes.NewRecordbuffer(schema.Elements()),
 	}
-
+	enc.filemetadata.Schema = schema.Elements()
+	fmt.Println(enc.filemetadata.Schema)
 	return enc
 }
 
@@ -170,6 +171,7 @@ func (e *defaultEncoder) Close() error {
 	}
 
 	// Write Metadata
+	fmt.Println(e.filemetadata.Schema)
 	err := writeFileMetadata(e, e.filemetadata)
 	if err != nil {
 		return err

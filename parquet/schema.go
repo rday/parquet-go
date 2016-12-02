@@ -62,6 +62,7 @@ func (s *Schema) Elements() []*thrift.SchemaElement {
 	elements := make([]*thrift.SchemaElement, 0, len(s.columns))
 
 	for _, colname := range s.columnsSequence {
+		fmt.Println(colname)
 		elements = append(elements, s.columns[colname].SchemaElement)
 	}
 
@@ -80,8 +81,10 @@ func (s *Schema) AddColumnFromSpec(format string) error {
 	name := values[0]
 	spec := values[1]
 
+	x := int32(1)
 	el := thrift.NewSchemaElement()
 	el.Name = name
+	el.NumChildren = &x
 
 	values = strings.Split(strings.TrimSpace(spec), " ")
 
@@ -120,6 +123,8 @@ func (s *Schema) AddColumnFromSpec(format string) error {
 	s.columns[el.Name] = ColumnDescriptor{
 		SchemaElement: el,
 	}
+
+	s.columnsSequence = append(s.columnsSequence, el.Name)
 
 	return nil
 }
@@ -324,9 +329,9 @@ func (g *group) create(schema []*thrift.SchemaElement, start int) (int, error) {
 		return 0, fmt.Errorf("Invalid NumChildren value in schema[%d]: %d", start, s.GetNumChildren())
 	}
 
-	if s.Type != nil {
-		return 0, fmt.Errorf("Not null type (%s) in schema[%d]", s.Type, start)
-	}
+	//	if s.Type != nil {
+	//	return 0, fmt.Errorf("Not null type (%s) in schema[%d]", s.Type, start)
+	//}
 	if start != 0 {
 		// TODO: check Name is not empty
 		if s.RepetitionType == nil {
